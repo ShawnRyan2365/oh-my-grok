@@ -11,7 +11,7 @@ set -euo pipefail
 
 OWNER="ShawnRyan2365"
 REPO="oh-my-grok"
-BIN_NAME="oh-my-grok"
+BIN_NAME="omg"
 INSTALL_DIR="${OMG_INSTALL_DIR:-${HOME}/.local/bin}"
 VERSION="${OMG_VERSION:-latest}"   # "latest" or a tag like "v0.2.106-omg.1"
 BUILD_FROM_SOURCE="${OMG_BUILD_FROM_SOURCE:-0}"

@@ -82,7 +82,9 @@ replace itself with an unaudited build. Explicit `grok update` still works.
   inference API as prompt context — that is inherent to using a hosted model.
   "No telemetry/upload" ≠ "no data leaves the machine." For zero egress, run a
   local model.
-- The binary name (`grok`) and brand identifiers are unchanged.
+- The command/binary is `omg` (project: oh-my-grok; upstream: `grok`). Internal
+  brand identifiers and config paths (`~/.grok`, `ai.x.grok`, `GROK_*`) are
+  unchanged.
 - `bin/protoc`, `third_party/`, and the tool implementations (codex/opencode
   ports) are untouched.
 

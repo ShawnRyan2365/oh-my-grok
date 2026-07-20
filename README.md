@@ -12,8 +12,20 @@ explicit "codebase upload" path, **but the upload pipeline that carried it is
 still in the tree**, and its on/off switch is one a remote server can flip.
 
 `oh-my-grok` is that pipeline, hard-disabled at the source, plus a frozen
-build that won't replace itself. Every change is a small, readable guard you
+build that won't replace itself. The project is **oh-my-grok**; the command is
+**`omg`** (like oh-my-zsh → `omz`). Every change is a small, readable guard you
 can audit in [`HARDENING.md`](HARDENING.md).
+
+---
+
+## Install
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/ShawnRyan2365/oh-my-grok/main/install.sh | bash
+```
+
+Then run `omg`. (Apple Silicon macOS ships a prebuilt binary; Intel macOS and
+Linux fall back to building from source. See [Build](#build) to do it manually.)
 
 ---
 
@@ -28,8 +40,8 @@ egress path regardless of server settings, config, or requirement pins.
 | Auth diagnostics upload suppressed | `xai-grok-shell/src/upload/gcs.rs` | Auth-failure logs stay local |
 | Auto-update disabled | `xai-grok-update/src/auto_update.rs` | The binary never silently downloads/replaces itself |
 
-The binary is also renamed `grok` → **`oh-my-grok`** so you can tell at a
-glance which build you're running (`oh-my-grok --version`).
+The binary is also renamed `grok` → **`omg`** so you can tell at a glance
+which build you're running (`omg --version`).
 
 Full audit, rationale, and re-audit commands: **[`HARDENING.md`](HARDENING.md)**.
 
@@ -56,14 +68,14 @@ cd oh-my-grok
 export PROTOC="$(command -v protoc)"   # e.g. brew install protobuf
 
 cargo build -p xai-grok-pager-bin --release
-# → target/release/oh-my-grok
+# → target/release/omg
 ```
 
 Install it on your `PATH`:
 
 ```sh
-install -m 755 target/release/oh-my-grok /usr/local/bin/oh-my-grok
-oh-my-grok --version    # oh-my-grok 0.2.106 (<commit>)
+install -m 755 target/release/omg /usr/local/bin/omg
+omg --version    # omg 0.2.106 (<commit>)
 ```
 
 > [!IMPORTANT]

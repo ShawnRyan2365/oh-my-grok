@@ -10,11 +10,11 @@ use crate::app::PagerArgs;
 
 /// Generate and print the completion script for the given shell.
 pub fn run(shell: Shell) {
-    // Ensure the script always uses the public "oh-my-grok" name (this fork's
+    // Ensure the script always uses the public "omg" name (this fork's
     // command name; upstream used "grok").
-    let mut cmd = PagerArgs::command().name("oh-my-grok");
+    let mut cmd = PagerArgs::command().name("omg");
     if shell != Shell::Zsh {
-        generate(shell, &mut cmd, "oh-my-grok", &mut std::io::stdout());
+        generate(shell, &mut cmd, "omg", &mut std::io::stdout());
         return;
     }
     // zsh needs post-processing (see fix_zsh_root_prompt_positional).
@@ -80,9 +80,9 @@ mod tests {
 
     /// Generate the zsh completion script exactly like `run` does.
     fn zsh_script() -> String {
-        let mut cmd = PagerArgs::command().name("oh-my-grok");
+        let mut cmd = PagerArgs::command().name("omg");
         let mut buf = Vec::new();
-        generate(Shell::Zsh, &mut cmd, "oh-my-grok", &mut buf);
+        generate(Shell::Zsh, &mut cmd, "omg", &mut buf);
         String::from_utf8(buf).expect("completion script is UTF-8")
     }
 
