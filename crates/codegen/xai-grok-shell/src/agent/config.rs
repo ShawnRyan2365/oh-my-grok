@@ -2048,7 +2048,12 @@ impl Config {
     pub fn is_two_pass_compaction_enabled(&self) -> bool {
         self.resolve_two_pass_compaction().value
     }
+    #[allow(unreachable_code)]
     pub(crate) fn resolve_telemetry_mode(&self) -> Resolved<TelemetryMode> {
+        // oh-my-grok hardening: telemetry is unconditionally disabled in this
+        // fork. Remote settings, requirement pins, and config cannot re-enable
+        // it — the server must never be able to flip data collection on.
+        return Resolved::new(TelemetryMode::Disabled, ConfigSource::Default);
         if let Some(mode) = self.requirements.telemetry.pinned() {
             return Resolved::new(mode, ConfigSource::Requirement);
         }
@@ -2070,7 +2075,13 @@ impl Config {
         }
         Resolved::new(TelemetryMode::Disabled, ConfigSource::Default)
     }
+    #[allow(unreachable_code)]
     pub(crate) fn resolve_trace_upload(&self) -> Resolved<bool> {
+        // oh-my-grok hardening: per-turn trace artifact uploads (turn messages,
+        // config, memory.tar.gz, unified logs → GCS) are unconditionally
+        // disabled. The remote `trace_upload_enabled` feature flag must not be
+        // able to turn this on; see the 2026-07 repo-upload incident.
+        return Resolved::new(false, ConfigSource::Default);
         let mode = self.resolve_telemetry_mode();
         let ff = if mode.value.is_disabled() {
             None

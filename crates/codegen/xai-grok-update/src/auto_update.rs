@@ -173,6 +173,12 @@ pub async fn check_update_status(update_config: &UpdateConfig) -> UpdateStatus {
 /// on the installer (via `installer_allows_downgrade`) so npm is never
 /// downgraded — the decision depends on the installer, never the caller.
 pub async fn auto_update_target(update_config: &UpdateConfig) -> Option<(&'static str, String)> {
+    // oh-my-grok hardening: background auto-update is disabled. This fork is
+    // meant to be a frozen, locally-audited build; silently downloading new
+    // binaries would defeat the audit. Explicit `grok update` still works.
+    let _ = update_config;
+    return None;
+    #[allow(unreachable_code)]
     let installer = get_installer().await?;
     let current = get_installed_grok_version();
     let latest = fetch_latest_version(installer, update_config).await.ok()?;
@@ -387,6 +393,11 @@ impl BackgroundUpdateCheck {
 /// TUI, the leader's hourly checker) already put the target version on disk,
 /// no download is started — only the restart hint is surfaced.
 pub async fn check_update_background(update_config: &UpdateConfig) -> BackgroundUpdateCheck {
+    // oh-my-grok hardening: no background update checks or downloads.
+    // See `auto_update_target`.
+    let _ = update_config;
+    return BackgroundUpdateCheck::none();
+    #[allow(unreachable_code)]
     let Some(installer) = get_installer().await else {
         return BackgroundUpdateCheck::none();
     };
@@ -469,6 +480,10 @@ pub async fn run_update_if_available(
     interactive: bool,
     update_config: &UpdateConfig,
 ) -> Result<bool> {
+    // oh-my-grok hardening: never auto-update. See `auto_update_target`.
+    let _ = (run_mode, interactive, update_config);
+    return Ok(false);
+    #[allow(unreachable_code)]
     let Some(inst) = get_installer().await else {
         // Skip update check if no known installer.
         return Ok(false);
