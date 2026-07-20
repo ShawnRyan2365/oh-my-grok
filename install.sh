@@ -24,7 +24,10 @@ die()     { c_red "error: $*"; exit 1; }
 
 need() { command -v "$1" >/dev/null 2>&1 || die "missing required command: $1"; }
 need curl
-[ "$(uname -s)" = "Darwin" ] && need shasum || need sha256sum
+need file
+if command -v shasum >/dev/null 2>&1; then SUM_CMD="shasum -a 256"
+elif command -v sha256sum >/dev/null 2>&1; then SUM_CMD="sha256sum"
+else die "missing required command: shasum or sha256sum"; fi
 
 # ── detect platform ────────────────────────────────────────────────────────
 os="$(uname -s)"
@@ -55,18 +58,33 @@ fi
 
 # ── fetch prebuilt, or build from source ───────────────────────────────────
 fetch_prebuilt() {
-  info "downloading ${asset} …"
   tmp="$(mktemp)"
-  if ! curl -fsSL "$url" -o "$tmp"; then
+  sha_url="$(dirname "$url")/checksums.txt"
+  for attempt in 1 2 3; do
+    info "downloading ${asset} (attempt ${attempt}/3)…"
+    if ! curl -fSL "$url" -o "$tmp" 2>/dev/null; then
+      sleep 1; continue
+    fi
+    # must be an executable image, not an HTML error/redirect page
+    if ! file "$tmp" | grep -qiE "Mach-O|ELF|executable|shared object"; then
+      c_dim "  response was not a binary (likely an error page); retrying"
+      sleep 1; continue
+    fi
+    # verify checksum if checksums.txt is published alongside the asset
+    expected="$(curl -fsSL "$sha_url" 2>/dev/null | awk -v a="$asset" '$2 == a {print $1; exit}')"
+    if [ -n "$expected" ]; then
+      actual="$(${SUM_CMD} "$tmp" | awk '{print $1}')"
+      if [ "$expected" != "$actual" ]; then
+        c_dim "  checksum mismatch (expected ${expected:0:12}…, got ${actual:0:12}…); retrying"
+        sleep 1; continue
+      fi
+    fi
+    install -m 755 "$tmp" "$dst"
     rm -f "$tmp"
-    return 1
-  fi
-  # sanity: must be a binary, not an HTML 404 page
-  if grep -q "<html\|<!DOCTYPE\|404: Not Found" "$tmp" 2>/dev/null; then
-    rm -f "$tmp"; return 1
-  fi
-  install -m 755 "$tmp" "$dst"
+    return 0
+  done
   rm -f "$tmp"
+  return 1
 }
 
 build_from_source() {
@@ -93,7 +111,7 @@ fi
 on_path=0
 case ":${PATH}:" in *":${INSTALL_DIR}:"*) on_path=1 ;; esac
 
-if [ "$on_path" = "0" ]; then
+if [ "$on_path" = "0" ] && [ "${OMG_NO_PATH_EDIT:-0}" != "1" ]; then
   rc=""
   case "$(basename "${SHELL:-}")" in
     zsh)  rc="${HOME}/.zshrc" ;;
