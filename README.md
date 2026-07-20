@@ -1,140 +1,113 @@
-<div align="center">
+# oh-my-grok
 
-<h1>
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://media.x.ai/v1/website/spacexai-symbol-white-transparent-0c31957f.png">
-    <source media="(prefers-color-scheme: light)" srcset="https://media.x.ai/v1/website/spacexai-symbol-black-transparent-6435cf42.png">
-    <img alt="SpaceXAI logo" src="https://media.x.ai/v1/website/spacexai-symbol-black-transparent-6435cf42.png" width="96">
-  </picture>
-  <br>
-  Grok Build (<code>grok</code>)
-</h1>
+A **hardened, self-built fork of [Grok Build](https://github.com/xai-org/grok-build)** — SpaceXAI's terminal AI coding agent.
 
-**Grok Build** is SpaceXAI's terminal-based AI coding agent. It runs as a
-full-screen TUI that understands your codebase, edits files, executes shell
-commands, searches the web, and manages long-running tasks — interactively,
-headlessly for scripting/CI, or embedded in editors via the Agent Client
-Protocol (ACP).
+> Build it yourself. Run the binary you built. No silent uploads, no silent
+> self-updates, no server-side switch that can flip data collection back on.
 
-[Installing the released binary](#installing-the-released-binary) ·
-[Building from source](#building-from-source) ·
-[Documentation](#documentation) ·
-[Repository layout](#repository-layout) ·
-[Development](#development) ·
-[Contributing](#contributing) ·
-[License](#license)
+In July 2026 Grok Build was caught uploading users' repositories, Git
+histories, SSH keys, and password databases to cloud storage — even when told
+not to open files. xAI open-sourced the code shortly after and removed the
+explicit "codebase upload" path, **but the upload pipeline that carried it is
+still in the tree**, and its on/off switch is one a remote server can flip.
 
-![Grok Build TUI](https://media.x.ai/v1/website/universe-tui-screenshot-6f7a0837.png)
-
-**Learn more about Grok Build at [x.ai/cli](https://x.ai/cli)**
-
-This repository contains the Rust source for the `grok` CLI/TUI and its agent
-runtime. It is synced periodically from the SpaceXAI monorepo.
-
-A small `SOURCE_REV` file at the root records the full monorepo commit SHA
-for the version of the code present in this tree.
-
-</div>
+`oh-my-grok` is that pipeline, hard-disabled at the source, plus a frozen
+build that won't replace itself. Every change is a small, readable guard you
+can audit in [`HARDENING.md`](HARDENING.md).
 
 ---
 
-## Installing the released binary
+## What's different from upstream
 
-Prebuilt binaries are published for macOS, Linux, and Windows:
+Three surgical patches (+35 lines across 4 files). Each hard-disables one
+egress path regardless of server settings, config, or requirement pins.
 
-```sh
-curl -fsSL https://x.ai/cli/install.sh | bash   # macOS / Linux / Git Bash
-irm https://x.ai/cli/install.ps1 | iex          # Windows PowerShell
-grok --version
-```
+| Patch | File | Effect |
+|-------|------|--------|
+| Telemetry + trace uploads forced off | `xai-grok-shell/src/agent/config.rs` | No per-turn trace bundles (conversation, config, memory, logs) leave the machine |
+| Auth diagnostics upload suppressed | `xai-grok-shell/src/upload/gcs.rs` | Auth-failure logs stay local |
+| Auto-update disabled | `xai-grok-update/src/auto_update.rs` | The binary never silently downloads/replaces itself |
 
-See the [changelog](https://x.ai/build/changelog) for the latest fixes,
-features, and improvements in each release.
+The binary is also renamed `grok` → **`oh-my-grok`** so you can tell at a
+glance which build you're running (`oh-my-grok --version`).
 
-## Building from source
+Full audit, rationale, and re-audit commands: **[`HARDENING.md`](HARDENING.md)**.
 
-Requirements:
+## What this does **not** change
 
-- **Rust** — the toolchain is pinned by [`rust-toolchain.toml`](rust-toolchain.toml);
-  `rustup` installs it automatically on first build.
-- **[DotSlash](https://dotslash-cli.com)** — required so hermetic tools under
-  [`bin/`](bin/) (notably [`bin/protoc`](bin/protoc)) can download and run.
-  Install it and ensure `dotslash` is on your `PATH` **before** building:
+- **It is still a cloud coding agent.** File content you reference is sent to
+  the xAI inference API as prompt context — that's inherent to using a hosted
+  model. "No telemetry" ≠ "no data leaves the machine." For zero egress, point
+  it at a local model.
+- **Config paths are unchanged** (`~/.grok`, `ai.x.grok`, `GROK_*` env vars)
+  for ecosystem compatibility. Renaming those would orphan your auth/settings.
+- Functionality, the TUI, tools, and skills are otherwise identical to upstream.
 
-  ```sh
-  cargo install dotslash
-  # or: prebuilt packages — https://dotslash-cli.com/docs/installation/
-  /usr/bin/env dotslash --help   # sanity check
-  ```
+## Build
 
-- **protoc** — proto codegen resolves [`bin/protoc`](bin/protoc) via DotSlash,
-  or falls back to a `protoc` on `PATH` / `$PROTOC`.
-- macOS and Linux are supported build hosts; Windows builds are best-effort
-  and not currently tested from this tree.
+Requirements: **Rust** (pinned by [`rust-toolchain.toml`](rust-toolchain.toml);
+`rustup` auto-installs it) and **protoc**.
 
 ```sh
-cargo run -p xai-grok-pager-bin              # build + launch the TUI
-cargo build -p xai-grok-pager-bin --release  # release binary: target/release/xai-grok-pager
-cargo check -p xai-grok-pager-bin            # fast validation
+git clone https://github.com/ShawnRyan2365/oh-my-grok.git
+cd oh-my-grok
+
+# protoc: either install DotSlash (upstream's path) or point at a system protoc
+export PROTOC="$(command -v protoc)"   # e.g. brew install protobuf
+
+cargo build -p xai-grok-pager-bin --release
+# → target/release/oh-my-grok
 ```
 
-The binary artifact is named `xai-grok-pager`; official installs ship it as
-`grok`. On first launch it opens your browser to authenticate — see the
-[authentication guide](crates/codegen/xai-grok-pager/docs/user-guide/02-authentication.md).
+Install it on your `PATH`:
+
+```sh
+install -m 755 target/release/oh-my-grok /usr/local/bin/oh-my-grok
+oh-my-grok --version    # oh-my-grok 0.2.106 (<commit>)
+```
+
+> [!IMPORTANT]
+> Do **not** use the upstream `curl … x.ai/cli/install.sh` path — that fetches
+> a prebuilt binary you cannot match to this source. The whole point is that
+> you build and run the same bytes you audited.
+
+## Defense in depth
+
+Client-side patches can't stop a server-driven config change from re-arming a
+path. Pair this fork with a **network firewall** that allows egress only to the
+inference API host you use. See [`HARDENING.md`](HARDENING.md#defense-in-depth-recommended-not-patched).
+
+## Syncing upstream
+
+`upstream` tracks xAI; `origin` is this fork.
+
+```sh
+git fetch upstream
+git merge upstream/main      # then re-audit the egress paths (see HARDENING.md)
+```
+
+Always re-run the re-audit greps after a sync — upstream may add a new egress
+path or change the gating logic.
 
 ## Documentation
 
-Full online documentation is available at
-[docs.x.ai/build/overview](https://docs.x.ai/build/overview).
-
-The user guide ships with the pager crate:
+The upstream user guide ships with the pager crate at
 [`crates/codegen/xai-grok-pager/docs/user-guide/`](crates/codegen/xai-grok-pager/docs/user-guide/)
-— getting started, keyboard shortcuts, slash commands, configuration, theming,
-MCP servers, skills, plugins, hooks, headless mode, sandboxing, and more.
+— getting started, keyboard shortcuts, slash commands, configuration, MCP
+servers, skills, plugins, hooks, headless mode, sandboxing.
 
-## Repository layout
+Original upstream README: [`README.upstream.md`](README.upstream.md).
 
-| Path | Contents |
-|------|----------|
-| `crates/codegen/xai-grok-pager-bin` | Composition-root package; builds the `xai-grok-pager` binary |
-| `crates/codegen/xai-grok-pager` | The TUI: scrollback, prompt, modals, rendering |
-| `crates/codegen/xai-grok-shell` | Agent runtime + leader/stdio/headless entry points |
-| `crates/codegen/xai-grok-tools` | Tool implementations (terminal, file edit, search, ...) |
-| `crates/codegen/xai-grok-workspace` | Host filesystem, VCS, execution, checkpoints |
-| `crates/codegen/...` | The rest of the CLI crate closure (config, MCP, markdown, sandbox, ...) |
-| `crates/common/`, `crates/build/`, `prod/mc/` | Small shared leaf crates pulled in by the closure |
-| `third_party/` | Vendored upstream source (Mermaid diagram stack) — see below |
+## Status
 
-> [!IMPORTANT]
-> The root `Cargo.toml` (workspace members, dependency versions, lints,
-> profiles) is **generated** — treat it as read-only. Prefer editing per-crate
-> `Cargo.toml` files.
+Early. The hardening is done and the build is verified, but this is a personal
+hardened fork — **audit it yourself before use**, and do not run it on
+machines holding material you cannot afford to expose until you have.
 
-## Development
+## Disclaimer
 
-```sh
-cargo check -p <crate>        # always target specific crates; full-workspace builds are slow
-cargo test -p xai-grok-config # per-crate tests
-cargo clippy -p <crate>       # lint config: clippy.toml at the repo root
-cargo fmt --all               # rustfmt.toml at the repo root
-```
-
-## Contributing
-
-> [!NOTE]
-> External contributions are not accepted. See [`CONTRIBUTING.md`](CONTRIBUTING.md).
-
-## License
-
-First-party code in this repository is licensed under the **Apache License,
-Version 2.0** — see [`LICENSE`](LICENSE).
-
-Third-party and vendored code remains under its original licenses. See:
-
-- [`THIRD-PARTY-NOTICES`](THIRD-PARTY-NOTICES) — crates.io / git dependencies,
-  bundled UI themes, and **in-tree source ports** (including openai/codex and
-  sst/opencode tool implementations)
-- [`crates/codegen/xai-grok-tools/THIRD_PARTY_NOTICES.md`](crates/codegen/xai-grok-tools/THIRD_PARTY_NOTICES.md)
-  — crate-local notice for the codex and opencode ports (license texts +
-  Apache §4(b) change notice)
-- [`third_party/NOTICE`](third_party/NOTICE) — vendored Mermaid-stack index
+Not affiliated with, endorsed by, or representative of xAI or SpaceXAI. "Grok"
+and "Grok Build" are their marks; this project uses them only to describe what
+the code is a fork of. All first-party code remains Apache-2.0 (see
+[`LICENSE`](LICENSE)); third-party notices apply (see
+[`THIRD-PARTY-NOTICES`](THIRD-PARTY-NOTICES)).
