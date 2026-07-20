@@ -408,9 +408,9 @@ fn version_with_channel() -> &'static str {
 }
 #[derive(Debug, Clone, Parser)]
 #[command(
-    name = "grok",
+    name = "oh-my-grok",
     version = version_with_channel(),
-    about = "Grok Build TUI",
+    about = "oh-my-grok — hardened Grok Build TUI",
     disable_version_flag = true,
     next_display_order = None,
     help_template = "\
